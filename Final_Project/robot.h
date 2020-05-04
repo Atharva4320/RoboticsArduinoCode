@@ -33,17 +33,20 @@ class Robot {
     void Init();
     void CommandPing(int trigPin);
     void distancePID();
+    void linePID();
     void motorPID();
     bool detectLine();
     bool detectIR();
     bool detectHorizon();
     void turnTillLine();
-    //void HandleTurn();
     void HandleButtonPress();
     void HandleTimerExpired();
     void HandleLineDetected();
     void HandleIrDetected();
     void HandleHorizonDetected();
     void executeStateMachine();
+
+    //Test functions:
+    bool lineFinished();
 };
 #endif

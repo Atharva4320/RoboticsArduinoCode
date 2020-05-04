@@ -11,8 +11,8 @@ volatile uint16_t pulseEnd = 0;
 float targetDistance = 30.0;
 float actualDistance = 0;
 float targetSpeed = 0;
-float baseLeft = 20.0;
-float baseRight = 20.0;
+float baseLeft = 10.0;
+float baseRight = 10.0;
 const uint8_t trigPin = 14; //this may be any appropriate pin, connect the pin to Trig on the sensor
 uint32_t lastPing = 0; //for scheduling pings
 uint32_t PING_INTERVAL = 250; //ms
@@ -21,6 +21,7 @@ uint16_t lineSensorValues[NUM_SENSORS];
 bool useEmitters = true; //  to use the emmiters of the line sensors
 bool lineNotDetected = true; // flag to check if the line has been reached
 bool lineDetected = false;
+bool lineEnded = false;
 
 volatile int16_t countsLeft = 0;
 volatile int16_t countsRight = 0;
@@ -131,6 +132,42 @@ void Robot::distancePID() {
 
 }
 
+void Robot::linePID() {
+  float leftSensor = lineSensorValues[1];
+  float centerSensor = lineSensorValues[2];
+  noInterrupts();
+  float lineError = (leftSensor - centerSensor) / 10; // to make the error more manageable
+
+  //  if (lineNotDetected == false) {
+  //    Serial.println(lineError);
+  //  }
+  static float prevLineError = 0;
+
+  static float lineDiff = 0;
+  lineDiff = lineError - prevLineError;
+
+  targetSpeed = /*4 * lineDiff;// */ 3.2 * lineError ;//+ 25 * lineDiff;
+  if (lineNotDetected == false) {
+    //    Serial.print(lineError);
+    //    Serial.print('\t');
+    //    Serial.print(lineDiff);
+    //    Serial.print('\t');
+    //    Serial.print(targetSpeed);
+    //    Serial.print('\n');
+  }
+  interrupts();
+}
+
+bool Robot::lineFinished() {
+  if (state == ROBOT_LINE_FOLLOW) {
+    if (lineSensorValues[2] > 300) {
+      lineEnded = true;
+    }
+    else lineEnded = false;
+  }
+  return lineEnded;
+}
+
 void Robot::motorPID() {
 
   //clear the timer flag
@@ -147,7 +184,7 @@ void Robot::motorPID() {
   static int16_t sumLeft = 0;
   static int16_t sumRight = 0;
 
- 
+
   /*
      Do PID stuffs here. Note that we turn off interupts while we read countsLeft/Right
      so that it won't get accidentally updated (in the ISR) while we're reading it.
@@ -178,13 +215,22 @@ void Robot::motorPID() {
   if (CheckSerialInput()) {
     ParseSerialInput();
   }
-  
+
   /* for reading in gain settings
      CheckSerialInput() returns true when it gets a complete string, which is
      denoted by a newline character ('\n'). Be sure to set your Serial Monitor to
      append a newline
   */
+  if (lineNotDetected == false) {
+//    Serial.print(targetSpeed);
+//    Serial.print('\t');
+//    Serial.print(targetLeft);
+//    Serial.print('\t');
+//    Serial.print(targetRight);
+//    Serial.print('\n');
+      Serial.println(lineEnded);
 
+  }
 }
 
 bool Robot::detectLine() {
@@ -212,8 +258,10 @@ void Robot::turnTillLine() {
   motors.setSpeeds(200, -200);
   if (state == ROBOT_LINE_FOLLOW) {
     if (lineSensorValues[2] < 160) {
-      state = ROBOT_IDLE;
+      //state = ROBOT_IDLE;
+      motors.setSpeeds(0, 0);
       lineNotDetected = false;
+      lineEnded = false;
     }
     else lineNotDetected = true;
     return lineNotDetected;
@@ -246,6 +294,7 @@ void Robot::HandleTimerExpired () {
     Serial.println("Gets executed till here....");
     Serial.println("Call to turnTillLine() function");
     timer.Start(1000);
+    // set motor Speeds to 0
     state = ROBOT_LINE_FOLLOW;
   }
 
@@ -305,8 +354,12 @@ void Robot::executeStateMachine() {
         turnTillLine();
       }
       if (readyToPID) {
-        //        linePID();
+        linePID();
         motorPID();
+        lineFinished();
+      }
+      if (lineEnded) {
+        motors.setSpeeds(0, 0);
       }
       break;
     case ROBOT_RAMP:
