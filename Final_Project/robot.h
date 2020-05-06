@@ -5,6 +5,7 @@
 #include <Zumo32U4Motors.h> // zumo motors library 
 #include <Zumo32U4Encoders.h> // zumo encoder libary
 
+
 #include <Wire.h> // Zumo wire library
 #include <Zumo32U4.h> // Zumo robot library
 
@@ -48,5 +49,7 @@ class Robot {
 
     //Test functions:
     bool lineFinished();
+    void turn();
+    void rampAngle();
 };
 #endif

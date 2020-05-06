@@ -1,8 +1,5 @@
-#include <button.h>
-#include"filter.h"
-#include <math.h>
+#include "filter.h"
 
-Button buttonA(14); //button A is pin 14 on the Zumo
 
 ComplementaryFilter::ComplementaryFilter(LSM303 compass, L3G gyro, float estimatedAngle, float accOffset, float gyroBias) {
   compass = compass;
@@ -13,8 +10,6 @@ ComplementaryFilter::ComplementaryFilter(LSM303 compass, L3G gyro, float estimat
 }
 
 void ComplementaryFilter::Init(void) {
-
-buttonA.Init();
 
   Wire.begin();
 
@@ -44,11 +39,11 @@ buttonA.Init();
 
   gyro.enableDefault();
 
-  while (!Serial) {} //wait for the Serial Monitor
+ // while (!Serial) {} //wait for the Serial Monitor
   compass.writeReg(LSM303 :: CTRL1, 0x67); // setting the sampling frequency of the accelerometer to 100 Hz 
   uint8_t ctrl1 = compass.readReg(LSM303::CTRL1);
-  Serial.print("CTRL1 is: ");
-  Serial.println(ctrl1, HEX);
+//  Serial.print("CTRL1 is: ");
+//  Serial.println(ctrl1, HEX);
   gyro.writeReg(L3G :: CTRL1, 0xBF); // setting the gyroscope sampling frequency rate to 400 Hz with a 110 Hz cut-off
 
 }
@@ -56,14 +51,15 @@ buttonA.Init();
 bool ComplementaryFilter::calcAngle(float& observedAngle, float& est, float& gyroBias) {
   byte statusA = compass.readReg(LSM303::STATUS_A); // storing the STATUS_A register bites of accelerometer
   byte normalValue = B00001000; 
-  if (buttonA.CheckButtonPress()) { // checks for the button press
+  if (average) { // checks for average
     for (int i = 0; i < 200; i++) { 
       compass.readAcc();
       observedAngle = atan2(compass.a.x,compass.a.z);
       angleSum += observedAngle;
     }
     accOffset = angleSum/200; // taking an average of 200 readins to calculate the accelerometer offset
-  }  
+    average = false;
+ }
   if ((statusA & normalValue) == normalValue) { // bit wise & operator to check each byte
     angleFlag = true; // set the boolean flag to true
     compass.readAcc();

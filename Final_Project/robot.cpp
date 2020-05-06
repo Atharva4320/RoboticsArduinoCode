@@ -1,3 +1,6 @@
+#include <filter.h>
+#include <RemoteDecoder.h>
+#include <RemoteConstants.h>
 #include "robot.h"
 #include <params.h> // PID library
 #include <serial_comm.h> // PID library
@@ -22,17 +25,40 @@ bool useEmitters = true; //  to use the emmiters of the line sensors
 bool lineNotDetected = true; // flag to check if the line has been reached
 bool lineDetected = false;
 bool lineEnded = false;
+bool irDetected = false;
+bool turned = false;
+bool onRamp = false;
+bool rampComplete = false;
 
 volatile int16_t countsLeft = 0;
 volatile int16_t countsRight = 0;
 
+// Remote Control:
+bool messageActive = false;
+uint16_t lastMessageTimeMs = 0;
+const uint16_t messageTimeoutMs = 115;
+
+// Sensor Fusion:
+float estimatedAngle;
+float accOffset;
+float gyroBias;
+float observedAngle;
+float est;
 
 Button buttonC (17); //button C is pin 17 on the Zumo
 Zumo32U4Motors motors;
 Zumo32U4Encoders encoders;
 Zumo32U4LineSensors lineSensors;
+LSM303 compass;
+L3G gyro;
+
+ComplementaryFilter filter (compass, gyro, estimatedAngle, accOffset, gyroBias);
+
+
+RemoteDecoder decoder;
 
 Robot::Robot() {}
+
 void Robot::Init() {
   Serial.begin(115200);
   //while (!Serial) {} //you must open the Serial Monitor to get past this step!
@@ -64,6 +90,10 @@ void Robot::Init() {
   //state = ROBOT_IDLE;
   Serial.println("Initialized state as IDLE");
   //pulseState = PLS_IDLE;
+
+  decoder.init();
+
+  filter.Init();
 }
 
 void Robot::CommandPing(int trigPin) {
@@ -222,13 +252,13 @@ void Robot::motorPID() {
      append a newline
   */
   if (lineNotDetected == false) {
-//    Serial.print(targetSpeed);
-//    Serial.print('\t');
-//    Serial.print(targetLeft);
-//    Serial.print('\t');
-//    Serial.print(targetRight);
-//    Serial.print('\n');
-      Serial.println(lineEnded);
+    //    Serial.print(targetSpeed);
+    //    Serial.print('\t');
+    //    Serial.print(targetLeft);
+    //    Serial.print('\t');
+    //    Serial.print(targetRight);
+    //    Serial.print('\n');
+   // Serial.println(lineEnded);
 
   }
 }
@@ -246,11 +276,77 @@ bool Robot::detectLine() {
 }
 
 bool Robot::detectIR() {
-
+  //  if (state == ROBOT_LINE_FOLLOW) {
+  //
+  //    decoder.service();
+  //
+  //    // Turn on the yellow LED if a message is active.
+  //    ledYellow(messageActive);
+  //
+  //    // Turn on the red LED if we are in the middle of receiving a
+  //    // new message from the remote.  You should see the red LED
+  //    // blinking about 9 times per second while you hold a remote
+  //    // button down.
+  //    ledRed(decoder.criticalTime());
+  //
+  //    if (decoder.criticalTime())
+  //    {
+  //      // We are in the middle of receiving a message from the
+  //      // remote, so we should avoid doing anything that might take
+  //      // more than a few tens of microseconds, and call
+  //      // decoder.service() as often as possible.
+  //    }
+  //    else
+  //    {
+  ////      if (decoder.getAndResetMessageFlag())
+  ////      {
+  ////        // The remote decoder received a new message, so record what
+  ////        // time it was received and process it.
+  ////        lastMessageTimeMs = millis();
+  ////        messageActive = true;
+  ////      }
+  ////
+  ////      if (decoder.getAndResetRepeatFlag())
+  ////      {
+  ////        // The remote decoder receiver a "repeat" command, which is
+  ////        // sent about every 109 ms while the button is being held
+  ////        // down.  It contains no data.  We record what time the
+  ////        // repeat command was received so we can know that the
+  ////        // current message is still active.
+  ////        lastMessageTimeMs = millis();
+  ////      }
+  //      irDetected = true;
+  //    }
+  //    // Check how long ago the current message was last verified.
+  //    // If it is longer than the timeout time, then the message has
+  //    // expired and we should stop executing it.
+  //
+  //    if (messageActive && (uint16_t)(millis() - lastMessageTimeMs) > messageTimeoutMs)
+  //    {
+  //      messageActive = false;
+  //    }
+  //    return irDetected;
+  //  }
 }
 
 bool Robot::detectHorizon() {
 
+}
+
+void Robot::rampAngle() {
+  Serial.println("Over here");
+  //if (state == ROBOT_RAMP) {
+    if (filter.calcAngle(observedAngle,est,gyroBias)) {
+      if (est > 0.6) {
+        onRamp = true;
+        rampComplete = false;
+      }
+      if ((est < 0.3) && (onRamp == true)) {
+        rampComplete = true;
+        onRamp = false; 
+      }
+    }
+//  }
 }
 
 void Robot::turnTillLine() {
@@ -259,6 +355,7 @@ void Robot::turnTillLine() {
   if (state == ROBOT_LINE_FOLLOW) {
     if (lineSensorValues[2] < 160) {
       //state = ROBOT_IDLE;
+      timer.Start(8000);
       motors.setSpeeds(0, 0);
       lineNotDetected = false;
       lineEnded = false;
@@ -293,9 +390,20 @@ void Robot::HandleTimerExpired () {
     Serial.println("Timer cancelled");
     Serial.println("Gets executed till here....");
     Serial.println("Call to turnTillLine() function");
-    timer.Start(1000);
+    //timer.Start(1000);
     // set motor Speeds to 0
     state = ROBOT_LINE_FOLLOW;
+  }
+  else if (state == ROBOT_LINE_FOLLOW) {
+    timer.Cancel();
+    // Code gets substituted to HandleIrDetected()
+    timer.Start(550);
+    motors.setSpeeds(150, -150);
+    state = ROBOT_RAMP;
+  }
+  else if (state == ROBOT_RAMP) {
+    timer.Cancel();
+    turned = true;
   }
 
   //  else if (state == ROBOT_RAMP) {
@@ -308,6 +416,9 @@ void Robot::HandleTimerExpired () {
   //    // Serial.print ("Sets speed back to 0");
   //  }
 }
+void Robot::turn() {
+
+}
 
 void Robot::HandleLineDetected() {
   if (state == ROBOT_WALL_FOLLOW) {
@@ -318,7 +429,9 @@ void Robot::HandleLineDetected() {
 
 
 void Robot::HandleIrDetected() {
-
+  if (state == ROBOT_LINE_FOLLOW) {
+    state = ROBOT_IDLE;
+  }
 }
 
 void Robot::HandleHorizonDetected() {
@@ -356,6 +469,7 @@ void Robot::executeStateMachine() {
       if (readyToPID) {
         linePID();
         motorPID();
+        detectIR();
         lineFinished();
       }
       if (lineEnded) {
@@ -364,6 +478,21 @@ void Robot::executeStateMachine() {
       break;
     case ROBOT_RAMP:
       //add code
+      Serial.print(onRamp);
+      Serial.print('\t');
+      Serial.print(rampComplete);
+      Serial.print('\t');
+      Serial.print(est);
+      Serial.print('\n');
+      if (turned) {
+        motors.setSpeeds(300, 265);
+        rampAngle();
+      }
+      if (rampComplete) {
+        Serial.println("Ramp Completed");
+        motors.setSpeeds(0,0);
+        state = ROBOT_IDLE;
+      }
       break;
     case ROBOT_360_TURN:
       //add code

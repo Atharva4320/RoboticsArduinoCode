@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <Wire.h>
 #include <Zumo32U4.h>
+#include <math.h>
 
 #ifndef __FILTER_H
 #define __FILTER_H
@@ -23,6 +24,7 @@ class ComplementaryFilter {
     float k = 0.5; // value of "kappa"
     float fusedAngle; // to store the fused estimate
     bool angleFlag = false; // setting a flag to check calcAngle()
+    bool average = true;
 
     public:
     ComplementaryFilter(LSM303 compass,L3G gyro,float estimatedAngle, float accOffset, float gyroBias);
