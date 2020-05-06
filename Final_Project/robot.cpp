@@ -335,18 +335,19 @@ bool Robot::detectHorizon() {
 
 void Robot::rampAngle() {
   Serial.println("Over here");
-  //if (state == ROBOT_RAMP) {
+  if (state == ROBOT_RAMP) {
     if (filter.calcAngle(observedAngle,est,gyroBias)) {
-      if (est > 0.6) {
+      if (est > 0.55) {
         onRamp = true;
         rampComplete = false;
+        //motors.setSpeeds(250,215);
       }
       if ((est < 0.3) && (onRamp == true)) {
         rampComplete = true;
-        onRamp = false; 
+        onRamp = false;
       }
     }
-//  }
+  }
 }
 
 void Robot::turnTillLine() {
@@ -446,7 +447,7 @@ void Robot::executeStateMachine() {
   if (timer.CheckExpired()) HandleTimerExpired();
   if (detectLine()) HandleLineDetected();
   if (detectIR()) HandleIrDetected();
-  if (detectHorizon()) HandleHorizonDetected();
+//  if (detectHorizon()) HandleHorizonDetected();
 
   // actual state machine:
   switch (state) {
@@ -490,7 +491,7 @@ void Robot::executeStateMachine() {
       }
       if (rampComplete) {
         Serial.println("Ramp Completed");
-        motors.setSpeeds(0,0);
+        //motors.setSpeeds(0,0);
         state = ROBOT_IDLE;
       }
       break;
