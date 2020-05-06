@@ -179,14 +179,14 @@ void Robot::linePID() {
 
   targetSpeed = /*4 * lineDiff;// */ 0.1 * lineError;// + 0.01 * lineDiff;
   if (lineNotDetected == false) {
-//    Serial.print(leftSensor);
-//    Serial.print('\t');
-//    Serial.print(centerSensor);
-//    Serial.print('\t');
-//    Serial.print(lineError);
-//    Serial.print('\t');
-//    Serial.print(targetSpeed);
-//    Serial.print('\n');
+    //    Serial.print(leftSensor);
+    //    Serial.print('\t');
+    //    Serial.print(centerSensor);
+    //    Serial.print('\t');
+    //    Serial.print(lineError);
+    //    Serial.print('\t');
+    //    Serial.print(targetSpeed);
+    //    Serial.print('\n');
   }
   interrupts();
 }
@@ -357,7 +357,7 @@ void Robot::rampAngle() {
         rampComplete = false;
         //motors.setSpeeds(250,215);
       }
-      if ((est < 0.3) && (onRamp == true)) {
+      else if ((est < 0.3) && (onRamp == true)) {
         rampComplete = true;
         onRamp = false;
       }
