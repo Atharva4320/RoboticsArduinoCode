@@ -11,7 +11,7 @@
 
 #ifndef __ROBOT_H
 #define __ROBOT_H
-#define NUM_SENSORS 5
+#define NUM_SENSORS 3
 
 class Robot {
 
