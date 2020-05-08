@@ -38,7 +38,7 @@ class Robot {
     void motorPID();
     bool detectLine();
     bool detectIR();
-    bool detectHorizon();
+    bool finishTurn();
     void turnTillLine();
     void HandleButtonPress();
     void HandleTimerExpired();

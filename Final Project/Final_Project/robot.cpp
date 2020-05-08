@@ -29,6 +29,8 @@ bool irDetected = false;
 bool turned = false;
 bool onRamp = false;
 bool rampComplete = false;
+bool readyToTurn = false;
+bool turnedHalfway = false;
 
 volatile int16_t countsLeft = 0;
 volatile int16_t countsRight = 0;
@@ -344,18 +346,28 @@ bool Robot::detectIR() {
   return irDetected;
 }
 
-bool Robot::detectHorizon() {
-
+bool Robot::finishTurn() {
+  if (state == ROBOT_360_TURN) {
+    motors.setSpeeds(200, -200);
+    if (filter.calcAngleZ(observedAngle, est, gyroBias)) {
+      if (est < 0) {
+        turnedHalfway = true;
+      }
+      else if (turnedHalfway == true && est > 0.46) {
+        state = ROBOT_IDLE;
+      }
+    }
+  }
 }
 
 void Robot::rampAngle() {
   Serial.println("Over here");
   if (state == ROBOT_RAMP) {
-    if (filter.calcAngle(observedAngle, est, gyroBias)) {
+    if (filter.calcAngleY(observedAngle, est, gyroBias)) {
       if (est > 0.45) {
         onRamp = true;
         //rampComplete = false;
-        motors.setSpeeds(350,330);
+        motors.setSpeeds(350, 350);
       }
       else if ((est < 0.15) && (onRamp == true)) {
         rampComplete = true;
@@ -431,7 +443,8 @@ void Robot::HandleTimerExpired () {
     turned = true;
   }
   else if (state == ROBOT_360_TURN) {
-    state = ROBOT_IDLE;
+    timer.Cancel();
+    readyToTurn = true;
   }
 
   //  else if (state == ROBOT_RAMP) {
@@ -532,6 +545,13 @@ void Robot::executeStateMachine() {
       break;
     case ROBOT_360_TURN:
       //add code
+      Serial.print(est);
+      Serial.print('\t');
+      Serial.print(turnedHalfway);
+      Serial.print('\n');
+      if (readyToTurn) {
+        finishTurn();
+      }
       break;
   }
 }
