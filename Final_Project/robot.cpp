@@ -352,14 +352,14 @@ void Robot::rampAngle() {
   Serial.println("Over here");
   if (state == ROBOT_RAMP) {
     if (filter.calcAngle(observedAngle, est, gyroBias)) {
-      if (est > 0.56) {
+      if (est > 0.45) {
         onRamp = true;
-        rampComplete = false;
-        //motors.setSpeeds(250,215);
+        //rampComplete = false;
+        motors.setSpeeds(350,330);
       }
-      else if ((est < 0.3) && (onRamp == true)) {
+      else if ((est < 0.15) && (onRamp == true)) {
         rampComplete = true;
-        onRamp = false;
+        //onRamp = false;
       }
     }
   }
@@ -458,8 +458,8 @@ void Robot::HandleLineDetected() {
 
 void Robot::HandleIrDetected() {
   if (state == ROBOT_LINE_FOLLOW) {
-    timer.Start(525);
-    motors.setSpeeds(150, -150);
+    timer.Start(500);
+    motors.setSpeeds(165, -165);
     state = ROBOT_RAMP;
   }
 }
@@ -481,6 +481,7 @@ void Robot::executeStateMachine() {
   // actual state machine:
   switch (state) {
     case ROBOT_IDLE:
+      //Serial.println(est);
       motors.setSpeeds(0, 0);
       break;
     case ROBOT_WAITING:
@@ -515,13 +516,17 @@ void Robot::executeStateMachine() {
       Serial.print(est);
       Serial.print('\n');
       if (turned) {
-        motors.setSpeeds(350, 310);
+        motors.setSpeeds(200, 200);
         rampAngle();
+      }
+      if (onRamp) {
+        motors.setSpeeds(345, 325);
       }
       if (rampComplete) {
         Serial.println("Ramp Completed");
-        timer.Start(1000);
+        timer.Start(3000);
         motors.setSpeeds(100, 100);
+        //motors.setSpeeds(0, 0);
         state = ROBOT_360_TURN;
       }
       break;
