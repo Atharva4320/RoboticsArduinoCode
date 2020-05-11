@@ -28,7 +28,7 @@ void loop()
 //    Serial.print('\t');
 //    Serial.print(gyroBias);
 //    Serial.print('\n');
-//
+
 //  }
 
   if (filter.calcAngleZ(observedAngle,est,gyroBias)){

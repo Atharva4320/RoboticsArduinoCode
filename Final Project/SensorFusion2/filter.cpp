@@ -48,6 +48,9 @@ void ComplementaryFilter::Init(void) {
 
 }
 
+/*
+ * calcAngleY calculates the change in angle in y-direction
+ */
 bool ComplementaryFilter::calcAngleY(float& observedAngle, float& est, float& gyroBias) {
   byte statusA = compass.readReg(LSM303::STATUS_A); // storing the STATUS_A register bites of accelerometer
   byte normalValue = B00001000; 
@@ -80,6 +83,9 @@ bool ComplementaryFilter::calcAngleY(float& observedAngle, float& est, float& gy
   return angleFlag;
 }
 
+/*
+ * calcAngleZ calculates the change in angle in z-direction
+ */
 bool ComplementaryFilter::calcAngleZ(float& observedAngle, float& est, float& gyroBias) {
   byte statusA = compass.readReg(LSM303::STATUS_A); // storing the STATUS_A register bites of accelerometer
   byte normalValue = B00001000; 
@@ -98,11 +104,11 @@ bool ComplementaryFilter::calcAngleZ(float& observedAngle, float& est, float& gy
     compass.readAcc();
     gyro.read();
     gamma = (0.00875 * (M_PI/180)) * gyro.g.z; // calculating the gyroscope reading
-    observedAngle = atan2(-compass.a.y,compass.a.x); 
+//    observedAngle = atan2(-compass.a.y,compass.a.x); 
     observedAngle -= accOffset; // substracting the accelerometer offset from readings
     //gyroBias = lastBias + eps * (est - observedAngle); // calculating the bias for gyroscope
     est = lastReading + (loopRate * gamma); // calculating the estimated angle
-    fusedAngle = 0.9 * (est) + (1-0.9)* (observedAngle); // calculating the fused angle using "kappa"
+    fusedAngle = 1 * (est) + (1-1)* (observedAngle); // calculating the fused angle using "kappa"
     lastReading = fusedAngle; // updating the lastReading with fusedAngle
     //lastBias = gyroBias; // updating the lastBias
 
