@@ -1,12 +1,12 @@
 #include "robot.h"
 
-Robot robot;
+Robot robo;
 
 void setup() {
   Serial.begin(115200);
-  robot.Init();
+  robo.Init();
 }
 
 void loop() {
-  robot.executeStateMachine();
+  robo.executeStateMachine();
 }
